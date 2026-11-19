@@ -1,0 +1,16 @@
+Linux Userspace (libusb)
+        |
+        |  Bulk OUT — Endpoint 0x03
+        |  "Hello Pico" (10 bytes)
+        ▼
+   Raspberry Pi Pico 2
+        |
+        |  TinyUSB receives data
+        |  Firmware echoes the same data
+        |
+        |  Bulk IN — Endpoint 0x83
+        ▼
+Linux Userspace (libusb)
+        |
+        ▼
+Received: "Hello Pico"
