@@ -59,6 +59,7 @@ static void usb_demo_bulk_out_complete(struct urb *urb)
 static void usb_demo_bulk_in_complete(struct urb *urb)
 {
     struct usb_demo *dev = urb->context;
+    int ret;
 
     if (urb->status) {
         dev_err(&dev->interface->dev,
@@ -77,6 +78,17 @@ static void usb_demo_bulk_in_complete(struct urb *urb)
                  urb->actual_length,
                  dev->bulk_in_buffer);
     }
+
+    /* Resubmit the IN URB for the next transfer */
+	ret = usb_submit_urb(urb, GFP_ATOMIC);  
+	if (ret) {
+    		dev_err(&dev->interface->dev,"Failed to resubmit Bulk IN URB: %d\n",ret);
+} 
+else {
+    dev_info(&dev->interface->dev,
+             "Bulk IN URB resubmitted - waiting for next data\n");
+}
+
 }
 
 

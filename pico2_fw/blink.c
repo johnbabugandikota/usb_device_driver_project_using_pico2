@@ -16,6 +16,7 @@ int main(void)
 
     uint8_t rx_buffer[64];
     uint32_t led_counter = 0;
+    uint32_t usb_tx_counter = 0;
 
     while (true)
     {
@@ -48,6 +49,23 @@ int main(void)
             }
         }
 
+/* Periodically send data to Linux */
+usb_tx_counter++;
+
+if (usb_tx_counter >= 1000)
+{
+    const char message[] = "Pico periodic message";
+
+    tud_vendor_n_write(
+        VENDOR_INTERFACE,
+        message,
+        sizeof(message) - 1
+    );
+
+    tud_vendor_n_write_flush(VENDOR_INTERFACE);
+
+    usb_tx_counter = 0;
+}
         /* Blink onboard LED */
         sleep_ms(1);
         led_counter++;
