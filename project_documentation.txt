@@ -1,0 +1,168 @@
+# Linux USB Device Driver with Asynchronous I/O
+
+## Project Overview
+
+Designed and developed a custom USB device using Raspberry Pi Pico 2 (RP2350) and implemented a Linux USB device driver to establish bidirectional communication between the device firmware and Linux userspace.
+
+The project focuses on understanding the Linux USB subsystem, asynchronous USB transfers, URB lifecycle management, kernel-to-userspace data handling, concurrency, and safe USB device disconnection/reconnection.
+
+## Hardware and Software
+
+- **USB Device:** Raspberry Pi Pico 2 (RP2350, ARM Cortex-M33)
+- **Firmware:** Embedded C/C++, Pico SDK, TinyUSB
+- **Operating System:** Linux (Kali Linux)
+- **Driver:** Linux Kernel USB subsystem
+- **USB Interface:** Vendor-specific interface
+- **Endpoints:** Bulk OUT (`0x03`) and Bulk IN (`0x83`)
+- **USB Speed:** Full Speed (12 Mbps)
+- **Tools:** ARM GCC, CMake, Make, Vim, Git
+
+## System Architecture
+
+### USB Device Firmware
+
+Developed custom USB device firmware on Raspberry Pi Pico 2 using TinyUSB.
+
+Implemented:
+- USB device enumeration
+- Custom USB descriptors
+- Interface configuration
+- Vendor-specific USB interface
+- Bulk IN and Bulk OUT communication
+- Periodic device-to-host data transmission
+
+### Linux USB Driver
+
+Implemented a Linux kernel USB driver that binds to the custom USB interface and manages the USB device lifecycle.
+
+Implemented:
+- USB device matching and probe
+- Endpoint discovery and validation
+- Bulk IN and Bulk OUT URB initialization
+- Asynchronous USB transfer submission
+- URB completion callbacks
+- USB disconnect handling
+- Device reconnection and re-probing
+
+### Asynchronous Bulk IN Data Path
+
+Implemented asynchronous Bulk IN transfers using URBs.
+
+Data flow:
+
+USB Device → Bulk IN URB → Completion Callback → RX Workqueue → FIFO Buffer → Character Device → Userspace
+
+The completion callback executes in USB completion context and transfers received data into a workqueue for processing in process context.
+
+The RX workqueue:
+- Processes received packets outside atomic context
+- Copies received data into a kernel FIFO
+- Uses mutex protection for FIFO synchronization
+- Wakes blocked userspace readers when data becomes available
+
+### Character Device Interface
+
+Created a character device interface at `/dev/usb_demo` to enable userspace communication with the USB device.
+
+Implemented:
+- `open()`
+- `read()`
+- `write()`
+- `release()`
+- `poll()`
+
+Features:
+- Blocking userspace reads
+- FIFO-based data buffering
+- Userspace-to-device Bulk OUT communication
+- Asynchronous write URBs
+- Poll-based readiness notification
+- Device-disconnect-aware read and write handling
+
+### Buffering and Concurrency
+
+Implemented a FIFO buffer with:
+- 4096-byte capacity
+- Head, tail, and count management
+- Mutex synchronization
+- FIFO wraparound handling
+- Full-buffer handling
+
+Implemented asynchronous userspace writes using individually allocated URBs, transfer buffers, and write contexts.
+
+Added synchronization and lifetime management to handle:
+- Concurrent writes
+- USB device disconnection during active transfers
+- Pending URB cancellation
+- Device lifetime management using reference counting
+- Safe cleanup of asynchronous transfer resources
+
+### Disconnect and Reconnection Handling
+
+Implemented safe USB disconnect handling.
+
+During disconnect:
+- Mark the device as disconnected
+- Prevent new userspace writes
+- Cancel pending asynchronous write URBs
+- Kill active USB URBs
+- Flush pending RX workqueue tasks
+- Wake blocked readers
+- Remove the character device
+- Release USB driver resources
+
+Implemented device reconnection support through USB re-enumeration and driver re-probing.
+
+## Validation and Testing
+
+Successfully tested:
+
+- USB device enumeration and driver probe
+- Bulk IN endpoint communication
+- Bulk OUT endpoint communication
+- Asynchronous URB completion
+- RX workqueue processing
+- FIFO data buffering
+- Userspace reads through `/dev/usb_demo`
+- Blocking reads
+- Disconnect while userspace is blocked in read
+- Correct reader wake-up and `-ENODEV` handling after disconnect
+- Userspace writes through the character device
+- Multiple asynchronous writes
+- Disconnect with active write URBs
+- Write attempts after disconnect
+- USB device reconnection and re-probe
+- Bulk IN communication after reconnection
+- Bulk OUT communication after reconnection
+
+## Current Project Status
+
+The core USB device firmware and Linux USB driver functionality have been implemented and validated.
+
+The project demonstrates practical understanding of:
+
+- Linux USB subsystem
+- USB descriptors and interfaces
+- Bulk transfers
+- USB Request Blocks (URBs)
+- Asynchronous I/O
+- Completion callbacks
+- Kernel workqueues
+- Character device drivers
+- FIFO buffering
+- Mutexes and spinlocks
+- Waitqueues
+- Poll interface
+- Kernel/user-space communication
+- USB disconnect and reconnect handling
+- URB cancellation
+- Resource and device lifetime management
+
+## Remaining Work
+
+- Final source-code concurrency and cleanup review
+- Final stress testing
+- Documentation and README completion
+- Git repository cleanup
+- Final project release/commit
+
